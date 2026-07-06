@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: Format, vet, testes (100%) e build (default + kafka)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+      - name: go vet
+        run: go vet ./cmd/... ./internal/...
+
+      - name: Testes com cobertura
+        run: go test ./internal/... -covermode=atomic -coverprofile=coverage.out
+
+      - name: Exigir cobertura de 100%
+        run: |
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ {print $3}' | tr -d '%')
+          echo "Cobertura total: ${pct}%"
+          awk -v p="$pct" 'BEGIN { if (p+0 < 100.0) { print "Cobertura abaixo de 100%"; exit 1 } }'
+
+      - name: Build (broker in-process)
+        run: go build ./cmd/api
+
+      - name: Build (adapter Kafka real)
+        run: go build -tags kafka ./...

@@ -1,0 +1,4 @@
+/app
+*.exe
+coverage.out
+coverage.html

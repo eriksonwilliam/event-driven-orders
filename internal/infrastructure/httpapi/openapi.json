@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "event-driven-orders",
+    "version": "0.1.0",
+    "description": "Saga de pedido por coreografia (pagamento → estoque → envio) sobre um broker de eventos."
+  },
+  "paths": {
+    "/orders": {
+      "post": {
+        "summary": "Coloca um pedido e dispara a saga",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PlaceOrder" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pedido criado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "400": { "description": "Entrada inválida" }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "summary": "Consulta o estado atual de um pedido",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pedido encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Order" }
+              }
+            }
+          },
+          "404": { "description": "Pedido não encontrado" }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": { "200": { "description": "OK" } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PlaceOrder": {
+        "type": "object",
+        "required": ["sku", "qty", "amount"],
+        "properties": {
+          "sku": { "type": "string", "example": "SKU-1" },
+          "qty": { "type": "integer", "example": 2 },
+          "amount": { "type": "integer", "description": "valor em centavos", "example": 4990 }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "sku": { "type": "string" },
+          "qty": { "type": "integer" },
+          "amount": { "type": "integer" },
+          "status": {
+            "type": "string",
+            "enum": ["PLACED", "PAYMENT_APPROVED", "PAYMENT_DECLINED", "STOCK_RESERVED", "OUT_OF_STOCK", "SHIPPED"]
+          },
+          "history": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
