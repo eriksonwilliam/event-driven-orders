@@ -34,5 +34,8 @@ jobs:
       - name: Build (broker in-process)
         run: go build ./cmd/api
 
+      - name: Kafka adapter regression tests
+        run: go test -race -tags kafka ./kafka/...
+
       - name: Build (adapter Kafka real)
         run: go build -tags kafka ./...
