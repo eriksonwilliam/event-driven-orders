@@ -1,5 +1,38 @@
 # event-driven-orders
 
+A Go reference project for an order saga, in-process events, and an optional
+Kafka adapter. The Kafka adapter uses one consumer per topic and dispatches each
+event to all handlers registered in that process, in registration order. This
+prevents local saga and projection handlers from competing in the same group.
+Register the complete handler set before publishers start sending messages.
+
+### Kafka acknowledgment and failure policy
+
+`FetchMessage` reads without automatically acknowledging the event. The adapter
+calls `CommitMessages` only after every local handler succeeds. A decoding,
+handler, fetch, or commit error stops that topic's consumer and logs the failure;
+it does not fetch a later message that could commit past a failed earlier offset.
+The process must be restarted after the underlying failure is resolved. There is
+no automatic retry, dead-letter queue, or consumer-health endpoint in this version.
+The HTTP health endpoint alone does not prove that consumers are still running.
+
+Delivery remains at least once: a failure after a side effect, or an ambiguous
+commit result, can lead to replay. Handlers still need durable idempotency.
+The in-memory saga/store is a reference implementation; it does not provide a
+transactional outbox, crash-safe business state, or exactly-once business effects.
+Malformed messages remain uncommitted and need an explicit operational resolution.
+Fake-reader regression tests verify handler fan-out, acknowledgment order, and
+stop-on-failure behavior without claiming real-broker integration coverage.
+
+```bash
+go test ./internal/...
+go test -race -tags kafka ./kafka/...
+go build -tags kafka ./...
+```
+
+### Documentação em português
+
+
 Microserviços **orientados a eventos** (event-driven) em **Go**: um fluxo de
 pedido resolvido por **coreografia de saga** — pagamento → reserva de estoque →
 envio — em que cada passo **reage a um evento e publica o próximo**. O broker de
