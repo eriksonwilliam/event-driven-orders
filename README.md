@@ -146,3 +146,30 @@ está distribuído. O read model projetado aqui devolve essa visibilidade.
 ## Licença
 
 MIT.
+
+## Real Kafka regression (2026-11-12)
+
+The `Kafka integration` workflow starts Apache Kafka 3.9.0 and runs:
+
+```bash
+KAFKA_INTEGRATION_BROKER=localhost:9092 go test -race -tags kafka ./kafka/... -run TestIntegration -count=1 -timeout=120s
+```
+
+Use a disposable local broker: the test creates and removes its own uniquely named
+topic. It verifies that handler failure leaves the message available after reader
+restart, that both local handlers run, and that the same group resumes after a
+successful explicit commit. Without the environment variable this integration test
+skips; the fake-reader tests still run. The compose app listener advertises `kafka`,
+so use the CI broker's host-accessible listener or configure your local listener
+for host execution. Do not infer multi-partition/rebalance guarantees from this
+single-partition case. No retry, DLQ, durable inbox or outbox is introduced here.
+
+### Durable processing roadmap
+
+1. Introduce stable event IDs, a PostgreSQL schema and repository transactions.
+2. Persist order/saga state and test recovery after process restart.
+3. Persist inbox deduplication and domain effects in the same transaction; test races.
+4. Persist outbox with business state, then implement relay leases/retries and recovery.
+5. Test crash after publish/before marking sent and duplicate delivery against Kafka.
+
+Each step needs executable failure tests before the portfolio describes it as shipped.
