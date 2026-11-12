@@ -51,7 +51,7 @@ func TestIntegrationFailureIsReplayedThenCommitted(t *testing.T) {
 	newReader := func() *kafkago.Reader {
 		return kafkago.NewReader(kafkago.ReaderConfig{
 			Brokers: []string{address}, Topic: topic, GroupID: topic, StartOffset: kafkago.FirstOffset,
-			MinBytes: 1, MaxWait: 100 * time.Millisecond, CommitInterval: 0,
+			MinBytes: 1, MaxBytes: 1048576, MaxWait: 100 * time.Millisecond, CommitInterval: 0,
 		})
 	}
 	failure := errors.New("transient handler failure")
